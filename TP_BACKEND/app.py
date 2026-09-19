@@ -1,22 +1,12 @@
 import mysql.connector
-from flask import Flask
 from flask import Flask, request, jsonify
+from src.rutas.deportes import mostrar_deportes_bp
+from src.validaciones.db import conexion_db
 
 app = Flask(__name__)
 
-def conexion_db():
-    return mysql.connector.connect(
-        host='localhost',
-        port=3306,
-        user='root',
-        password= 'lanzillotta',
-        database= 'CLUB'
-    )
-
-@app.route("/")
-def holaxd():
-    return "hola xd lol"
+app.register_blueprint(mostrar_deportes_bp)
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5000) 
