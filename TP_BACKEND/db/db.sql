@@ -1,6 +1,12 @@
 CREATE DATABASE CLUB;
 USE CLUB;
 
+CREATE TABLE DEPORTES
+(
+id_deporte INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+deporte VARCHAR(50)
+);
+
 CREATE TABLE CANCHAS
 (
 id_cancha INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -12,10 +18,12 @@ activa BOOLEAN DEFAULT TRUE,
 foreign key (id_deporte) references DEPORTES(id_deporte)
 );
 
-CREATE TABLE DEPORTES
+CREATE TABLE SOCIOS
 (
-id_deporte INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-deporte VARCHAR(50)
+id_socio INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+nombre VARCHAR(80) NOT NULL,
+email VARCHAR(80),
+activo BOOLEAN DEFAULT TRUE
 );
 
 CREATE TABLE RESERVAS
@@ -31,14 +39,4 @@ estado BOOLEAN,
 foreign key (id_socio) references SOCIOS(id_socio),
 foreign key (id_cancha) references CANCHAS(id_cancha)
 );
-
-CREATE TABLE SOCIOS
-(
-id_socio INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-nombre VARCHAR(80) NOT NULL,
-email VARCHAR(80),
-activo BOOLEAN DEFAULT TRUE
-);
-
-
 

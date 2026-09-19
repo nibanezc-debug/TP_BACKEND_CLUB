@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify,Blueprint
-from src.repositorios.db import conexion_db
+from src.validaciones.db import conexion_db
 
 mostrar_deportes_bp = Blueprint('mostrar_deportes_bp', __name__)
 
@@ -8,7 +8,7 @@ def mostrar_deportes():
     conn = conexion_db()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT deporte FROM DEPORTES;")
+    cursor.execute("SELECT * FROM DEPORTES;")
     resultado = cursor.fetchall()
   
     cursor.close()

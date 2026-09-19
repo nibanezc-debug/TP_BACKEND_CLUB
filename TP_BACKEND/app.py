@@ -1,7 +1,7 @@
 import mysql.connector
 from flask import Flask, request, jsonify
 from src.rutas.deportes import mostrar_deportes_bp
-from src.validaciones.db import conexion_db
+from src.repositorios.db import conexion_db
 
 app = Flask(__name__)
 
