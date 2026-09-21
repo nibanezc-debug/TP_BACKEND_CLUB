@@ -28,12 +28,12 @@ def buscar_canchas(
   try:
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute(f'SELECT COUNT(*) as total FROM canchas{where}', parametros)
+    cursor.execute(f'SELECT COUNT(*) as total FROM CANCHAS{where}', parametros)
     total = cursor.fetchone()['total']
 
     sql = (
-        f'SELECT id, nombre, id_deporte, precio_hora, techada, activa FROM'
-        f' canchas{where} ORDER BY id ASC LIMIT %s OFFSET %s'
+        f'SELECT id_cancha, nombre, id_deporte, precio_hora, techada, activa FROM'
+        f' CANCHAS{where} ORDER BY id_cancha ASC LIMIT %s OFFSET %s'
     )
     cursor.execute(sql, parametros + [limit, offset])
     canchas = cursor.fetchall()
@@ -53,7 +53,7 @@ def guardar_cancha(nombre, id_deporte, precio_hora, techada, activa):
   try:
     cursor = conn.cursor()
     cursor.execute(
-        'INSERT INTO canchas (nombre, id_deporte, precio_hora, techada,'
+        'INSERT INTO CANCHAS (nombre, id_deporte, precio_hora, techada,'
         ' activa) VALUES (%s, %s, %s, %s, %s)',
         [nombre, id_deporte, precio_hora, techada, activa],
     )

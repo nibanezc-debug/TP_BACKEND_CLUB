@@ -1,4 +1,4 @@
-CREATE DATABASE CLUB;
+CREATE DATABASE IF NOT EXISTS CLUB;
 USE CLUB;
 
 CREATE TABLE DEPORTES
@@ -39,4 +39,6 @@ estado BOOLEAN,
 foreign key (id_socio) references SOCIOS(id_socio),
 foreign key (id_cancha) references CANCHAS(id_cancha)
 );
+
+
 

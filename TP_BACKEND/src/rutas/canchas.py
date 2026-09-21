@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 import mysql.connector
 from mysql.connector import Error as MySQLError
 from src.repositorios import canchas as repo_canchas
+from src.validaciones.canchas import datos_validos_cancha
 
 canchas_bp = Blueprint("canchas_bp", __name__)
 
@@ -31,14 +32,16 @@ def post_cancha():
     nombre = datos.get("nombre")
     id_deporte = datos.get("id_deporte")
     precio_hora = datos.get("precio_hora")
-    techada = bool(datos.get("techada", False))
-    activa = bool(datos.get("activa", True))
-
-    if not nombre or id_deporte is None or precio_hora is None or precio_hora <= 0:
+    techada = datos.get("techada", False)
+    activa = datos.get("activa", True)
+    
+    if not datos_validos_cancha(nombre, id_deporte, precio_hora, techada, activa):
         return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Datos de entrada inválidos o faltantes"}]}), 400
 
+    nombre_sin_espacio = nombre.strip()
+
     try:
-        cancha_id = repo_canchas.guardar_cancha(nombre, id_deporte, precio_hora, techada, activa)
+        cancha_id = repo_canchas.guardar_cancha(nombre_sin_espacio, id_deporte, precio_hora, techada, activa)
         return jsonify({"id": cancha_id}), 201
     except MySQLError:
         return jsonify({"errors": [{"code": "NOT_FOUND", "message": "Deporte no encontrado"}]}), 404
