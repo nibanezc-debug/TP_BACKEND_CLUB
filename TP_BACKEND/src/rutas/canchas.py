@@ -48,7 +48,7 @@ def post_cancha():
 
 
 @canchas_bp.route("/canchas/<int:id>", methods=["GET"])
-def get_cancha_by_id(id):
+def obtener_cancha_por_id(id):
     cancha = repo_canchas.obtener_cancha_por_id(id)
     if not cancha:
         return jsonify({"errors": [{"code": "NOT_FOUND", "message": "Cancha no encontrada"}]}), 404
@@ -58,12 +58,26 @@ def get_cancha_by_id(id):
 @canchas_bp.route("/canchas/<int:id>", methods=["PATCH"])
 def patch_cancha(id):
     cancha = repo_canchas.obtener_cancha_por_id(id)
+    
     if not cancha:
         return jsonify({"errors": [{"code": "NOT_FOUND", "message": "Cancha no encontrada"}]}), 404
-
+    
     datos = request.get_json(silent=True) or {}
+    
     if not datos:
         return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Cuerpo de la petición vacío"}]}), 400
+    
+    nombre = datos.get("nombre", cancha["nombre"])
+    id_deporte = cancha["id_deporte"]
+    precio_hora = datos.get("precio_hora", cancha["precio_hora"])
+    techada = datos.get("techada", cancha["techada"])
+    activa = datos.get("activa", cancha["activa"])
+
+    if "nombre" in datos and isinstance(nombre, str):
+        nombre = nombre.strip()
+
+    if not datos_validos_cancha(nombre, id_deporte, precio_hora, techada, activa):
+        return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Datos de entrada inválidos"}]}), 400
 
     repo_canchas.actualizar_cancha_db(id, datos)
     return "", 204

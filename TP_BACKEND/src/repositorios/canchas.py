@@ -70,8 +70,8 @@ def obtener_cancha_por_id(cancha_id):
   try:
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
-        'SELECT id, nombre, id_deporte, precio_hora, techada, activa FROM'
-        ' canchas WHERE id = %s',
+        'SELECT id_cancha, nombre, id_deporte, precio_hora, techada, activa FROM'
+        ' CANCHAS WHERE id_cancha = %s',
         [cancha_id],
     )
     cancha = cursor.fetchone()
@@ -93,7 +93,7 @@ def actualizar_cancha_db(cancha_id, campos):
   try:
     cursor = conn.cursor()
     cursor.execute(
-        f"UPDATE canchas SET {', '.join(set_sql)} WHERE id = %s", params
+        f"UPDATE CANCHAS SET {', '.join(set_sql)} WHERE id_cancha = %s", params
     )
     conn.commit()
     cursor.close()
