@@ -117,15 +117,16 @@ def buscar_canchas_libres(
     start_iso, end_iso, id_deporte=None, techada=None, limit=10, offset=0
 ):
   sql = """
-        SELECT c.id, c.nombre, c.id_deporte, c.precio_hora, c.techada, c.activa
-        FROM canchas c
-        WHERE c.activa = TRUE
-          AND NOT EXISTS (
-              SELECT 1 FROM reservas r
-              WHERE r.id_cancha = c.id AND r.estado = 'confirmada'
-                AND r.fecha_hora_inicio < %s AND r.fecha_hora_fin > %s
-          )
-    """
+    SELECT c.id_cancha, c.nombre, c.id_deporte, c.precio_hora, c.techada, c.activa
+    FROM CANCHAS c
+    WHERE c.activa = TRUE
+      AND NOT EXISTS (
+          SELECT 1 FROM RESERVAS r
+          WHERE r.id_cancha = c.id_cancha AND r.estado = TRUE
+            AND r.fecha_inicio < %s AND r.fecha_fin > %s
+      )
+"""
+
   params = [end_iso, start_iso]
 
   if id_deporte is not None:
@@ -141,7 +142,7 @@ def buscar_canchas_libres(
     cursor.execute(f'SELECT COUNT(*) as total FROM ({sql}) AS sub', params)
     total = cursor.fetchone()['total']
 
-    sql += ' ORDER BY c.id ASC LIMIT %s OFFSET %s'
+    sql += ' ORDER BY c.id_cancha ASC LIMIT %s OFFSET %s'
     cursor.execute(sql, params + [limit, offset])
     canchas = cursor.fetchall()
 

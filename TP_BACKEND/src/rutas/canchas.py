@@ -3,6 +3,7 @@ import mysql.connector
 from mysql.connector import Error as MySQLError
 from src.repositorios import canchas as repo_canchas
 from src.validaciones import canchas as valid_canchas
+from src.servicios import canchas as serv_canchas
 
 canchas_bp = Blueprint("canchas_bp", __name__)
 
@@ -86,7 +87,7 @@ def patch_cancha(id):
     return "", 204
 
 
-@canchas_bp.route("/canchas/<int:id>", methods=["DELETE"])
+@canchas_bp.route("/canchas/<int:id>", methods=["DELETE"]) #verificado
 def delete_cancha(id):
     cancha = repo_canchas.obtener_cancha_por_id(id)
     if not cancha:
@@ -104,22 +105,35 @@ def get_canchas_disponibles():
     fecha = request.args.get("fecha")
     hora_inicio = request.args.get("hora_inicio")
     hora_fin = request.args.get("hora_fin")
-    id_deporte = request.args.get("id_deporte", type=int)
+    id_deporte_str = request.args.get("id_deporte")
     techada_str = request.args.get("techada")
     limit = request.args.get("_limit", default=10, type=int)
     offset = request.args.get("_offset", default=0, type=int)
 
+    
     if not fecha or not hora_inicio or not hora_fin:
         return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Faltan parámetros requeridos: fecha, hora_inicio, hora_fin"}]}), 400
 
-    techada = True if techada_str and techada_str.lower() == "true" else (False if techada_str and techada_str.lower() == "false" else None)
+    if not valid_canchas.datos_validos_cancha_GET(None, id_deporte_str, techada_str, None):
+        return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Datos de entrada inválidos o faltantes"}]}), 400    
 
-    start_iso = f"{fecha}T{hora_inicio}.000000-03:00"
-    end_iso = f"{fecha}T{hora_fin}.000000-03:00"
+    es_valido, mensaje_error = serv_canchas.validar_horario_disponibilidad(fecha, hora_inicio, hora_fin)
+    
+    if not es_valido:
+        return (jsonify({"errors": [{"code": "BAD_REQUEST", "message": mensaje_error}]}),400,)
+
+    techada = True if techada_str and techada_str.lower() == "true" else (False if techada_str and techada_str.lower() == "false" else None)
+    id_deporte = int(id_deporte_str) if id_deporte_str is not None else None
+
+    hora_ini_limpio = hora_inicio if len(hora_inicio) == 8 else f"{hora_inicio}:00"
+    hora_fin_limpio = hora_fin if len(hora_fin) == 8 else f"{hora_fin}:00"
+
+    start_iso = f"{fecha}T{hora_ini_limpio}.000000-03:00"
+    end_iso = f"{fecha}T{hora_fin_limpio}.000000-03:00"
 
     lista, _ = repo_canchas.buscar_canchas_libres(start_iso, end_iso, id_deporte, techada, limit, offset)
 
     if not lista:
-        return "", 204
+        return "", 200
 
     return jsonify({"canchas": lista}), 200
