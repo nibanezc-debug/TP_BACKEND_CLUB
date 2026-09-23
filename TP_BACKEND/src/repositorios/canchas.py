@@ -106,7 +106,7 @@ def eliminar_cancha_db(cancha_id):
   conn = conexion_db()
   try:
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM canchas WHERE id = %s', [cancha_id])
+    cursor.execute('DELETE FROM CANCHAS WHERE id_cancha = %s', [cancha_id])
     conn.commit()
     cursor.close()
   finally:

@@ -2,21 +2,27 @@ from flask import Blueprint, jsonify, request
 import mysql.connector
 from mysql.connector import Error as MySQLError
 from src.repositorios import canchas as repo_canchas
-from src.validaciones.canchas import datos_validos_cancha
+from src.validaciones import canchas as valid_canchas
 
 canchas_bp = Blueprint("canchas_bp", __name__)
 
-@canchas_bp.route("/canchas", methods=["GET"])
+@canchas_bp.route("/canchas", methods=["GET"]) #verificado
 def get_canchas():
     limit = request.args.get("_limit", default=10, type=int)
     offset = request.args.get("_offset", default=0, type=int)
-    id_deporte = request.args.get("id_deporte", type=int)
+    id_deporte_str = request.args.get("id_deporte")
     nombre = request.args.get("nombre")
     techada_str = request.args.get("techada")
     activa_str = request.args.get("activa")
 
+
+
+    if not valid_canchas.datos_validos_cancha_GET(nombre, id_deporte_str, techada_str, activa_str):
+        return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Datos de entrada inválidos o faltantes"}]}), 400
+
     techada = True if techada_str and techada_str.lower() == "true" else (False if techada_str and techada_str.lower() == "false" else None)
     activa = True if activa_str and activa_str.lower() == "true" else (False if activa_str and activa_str.lower() == "false" else None)
+    id_deporte = int(id_deporte_str) if id_deporte_str is not None else None
 
     lista, _ = repo_canchas.buscar_canchas(id_deporte, nombre, techada, activa, limit, offset)
 
@@ -26,7 +32,7 @@ def get_canchas():
     return jsonify({"canchas": lista}), 200
 
 
-@canchas_bp.route("/canchas", methods=["POST"])
+@canchas_bp.route("/canchas", methods=["POST"]) #verificado
 def post_cancha():
     datos = request.get_json(silent=True) or {}
     nombre = datos.get("nombre")
@@ -35,13 +41,11 @@ def post_cancha():
     techada = datos.get("techada", False)
     activa = datos.get("activa", True)
     
-    if not datos_validos_cancha(nombre, id_deporte, precio_hora, techada, activa):
+    if not valid_canchas.datos_validos_cancha_POST_PATCH(nombre, id_deporte, precio_hora, techada, activa):
         return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Datos de entrada inválidos o faltantes"}]}), 400
 
-    nombre_sin_espacio = nombre.strip()
-
     try:
-        cancha_id = repo_canchas.guardar_cancha(nombre_sin_espacio, id_deporte, precio_hora, techada, activa)
+        cancha_id = repo_canchas.guardar_cancha(nombre, id_deporte, precio_hora, techada, activa)
         return jsonify({"id": cancha_id}), 201
     except MySQLError:
         return jsonify({"errors": [{"code": "NOT_FOUND", "message": "Deporte no encontrado"}]}), 404
@@ -55,7 +59,7 @@ def obtener_cancha_por_id(id):
     return jsonify(cancha), 200
 
 
-@canchas_bp.route("/canchas/<int:id>", methods=["PATCH"])
+@canchas_bp.route("/canchas/<int:id>", methods=["PATCH"]) #verificado
 def patch_cancha(id):
     cancha = repo_canchas.obtener_cancha_por_id(id)
     
@@ -68,7 +72,6 @@ def patch_cancha(id):
         return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Cuerpo de la petición vacío"}]}), 400
     
     nombre = datos.get("nombre", cancha["nombre"])
-    id_deporte = cancha["id_deporte"]
     precio_hora = datos.get("precio_hora", cancha["precio_hora"])
     techada = datos.get("techada", cancha["techada"])
     activa = datos.get("activa", cancha["activa"])
@@ -76,7 +79,7 @@ def patch_cancha(id):
     if "nombre" in datos and isinstance(nombre, str):
         nombre = nombre.strip()
 
-    if not datos_validos_cancha(nombre, id_deporte, precio_hora, techada, activa):
+    if not valid_canchas.datos_validos_cancha_POST_PATCH(nombre ,None , precio_hora, techada, activa):
         return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Datos de entrada inválidos"}]}), 400
 
     repo_canchas.actualizar_cancha_db(id, datos)
