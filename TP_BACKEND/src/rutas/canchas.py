@@ -100,7 +100,7 @@ def delete_cancha(id):
         return jsonify({"errors": [{"code": "CONFLICT", "message": "La cancha posee reservas asociadas"}]}), 409
 
 
-@canchas_bp.route("/canchas/disponibles", methods=["GET"])
+@canchas_bp.route("/canchas/disponibles", methods=["GET"]) #verificada
 def get_canchas_disponibles():
     fecha = request.args.get("fecha")
     hora_inicio = request.args.get("hora_inicio")
