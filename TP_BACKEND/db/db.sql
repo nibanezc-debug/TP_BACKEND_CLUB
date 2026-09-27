@@ -29,16 +29,15 @@ activo BOOLEAN DEFAULT TRUE
 CREATE TABLE RESERVAS
 (
 id_reserva INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-id_socio INT,
-id_cancha INT,
-fecha_inicio VARCHAR(35),
-fecha_fin VARCHAR(35),
-tarifa_historica INT,
-total INT,
-estado BOOLEAN,
+id_socio INT NOT NULL,
+id_cancha INT NOT NULL,
+fecha_inicio VARCHAR(35) NOT NULL,
+fecha_fin VARCHAR(35) NOT NULL,
+tarifa_historica INT NOT NULL,
+total INT NOT NULL,
+estado VARCHAR(20) NOT NULL DEFAULT 'confirmada',
 foreign key (id_socio) references SOCIOS(id_socio),
 foreign key (id_cancha) references CANCHAS(id_cancha)
 );
-
 
 
