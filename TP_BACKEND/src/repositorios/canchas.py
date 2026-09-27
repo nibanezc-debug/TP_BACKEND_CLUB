@@ -122,7 +122,7 @@ def buscar_canchas_libres(
     WHERE c.activa = TRUE
       AND NOT EXISTS (
           SELECT 1 FROM RESERVAS r
-          WHERE r.id_cancha = c.id_cancha AND r.estado = TRUE
+          WHERE r.id_cancha = c.id_cancha AND r.estado = 'confirmada'
             AND r.fecha_inicio < %s AND r.fecha_fin > %s
       )
 """
