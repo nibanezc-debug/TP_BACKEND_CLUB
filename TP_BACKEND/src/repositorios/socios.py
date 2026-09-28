@@ -1,11 +1,11 @@
 from src.repositorios.db import conexion_db
 
-# Devolvemos "id" (y no "id_socio") porque así lo pide el swagger.
+# Devolvemos "id".
 COLUMNAS = 'id_socio AS id, nombre, email, activo'
 
 
 def _formatear(socio):
-    # MySQL guarda los booleanos como 0/1; los pasamos a True/False
+    '''Pasa booleanos 0/1 a True/False'''
     socio['activo'] = bool(socio['activo'])
     return socio
 
@@ -82,8 +82,6 @@ def guardar_socio(nombre, email):
 
 
 def actualizar_socio_db(id_socio, campos):
-    # "campos" solo puede traer nombre, email o activo: eso ya lo
-    # controló la capa de servicios antes de llegar acá.
     if not campos:
         return
     set_sql = [f'{columna} = %s' for columna in campos]
