@@ -1,5 +1,13 @@
 from src.repositorios.db import conexion_db
 
+
+def _escapar_like(texto):
+  """Escapa \\, % y _ para que la búsqueda por nombre sea literal."""
+  return (
+      texto.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+  )
+
+
 def buscar_canchas(
     id_deporte=None,
     nombre=None,
@@ -14,8 +22,8 @@ def buscar_canchas(
     condiciones.append('id_deporte = %s')
     parametros.append(id_deporte)
   if nombre:
-    condiciones.append('LOWER(nombre) LIKE %s')
-    parametros.append(f'%{nombre.lower()}%')
+    condiciones.append("LOWER(nombre) LIKE %s ESCAPE '\\\\'")
+    parametros.append(f'%{_escapar_like(nombre.lower())}%')
   if techada is not None:
     condiciones.append('techada = %s')
     parametros.append(techada)
@@ -32,7 +40,7 @@ def buscar_canchas(
     total = cursor.fetchone()['total']
 
     sql = (
-        f'SELECT id_cancha, nombre, id_deporte, precio_hora, techada, activa FROM'
+        f'SELECT id_cancha AS id, nombre, id_deporte, precio_hora, techada, activa FROM'
         f' CANCHAS{where} ORDER BY id_cancha ASC LIMIT %s OFFSET %s'
     )
     cursor.execute(sql, parametros + [limit, offset])
@@ -70,7 +78,7 @@ def obtener_cancha_por_id(cancha_id):
   try:
     cursor = conn.cursor(dictionary=True)
     cursor.execute(
-        'SELECT id_cancha, nombre, id_deporte, precio_hora, techada, activa FROM'
+        'SELECT id_cancha AS id, nombre, id_deporte, precio_hora, techada, activa FROM'
         ' CANCHAS WHERE id_cancha = %s',
         [cancha_id],
     )
@@ -84,9 +92,15 @@ def obtener_cancha_por_id(cancha_id):
     conn.close()
 
 
+COLUMNAS_EDITABLES = {'nombre', 'precio_hora', 'techada', 'activa'}
+
+
 def actualizar_cancha_db(cancha_id, campos):
   if not campos:
     return
+  
+  if not set(campos) <= COLUMNAS_EDITABLES:
+    raise ValueError('Columna no editable en CANCHAS')
   set_sql = [f'{k} = %s' for k in campos.keys()]
   params = list(campos.values()) + [cancha_id]
   conn = conexion_db()
@@ -97,6 +111,21 @@ def actualizar_cancha_db(cancha_id, campos):
     )
     conn.commit()
     cursor.close()
+  finally:
+    conn.close()
+
+
+def cancha_tiene_reservas(cancha_id):
+  """True si la cancha tiene alguna reserva, sin importar su estado."""
+  conn = conexion_db()
+  try:
+    cursor = conn.cursor()
+    cursor.execute(
+        'SELECT 1 FROM RESERVAS WHERE id_cancha = %s LIMIT 1', [cancha_id]
+    )
+    tiene = cursor.fetchone() is not None
+    cursor.close()
+    return tiene
   finally:
     conn.close()
 
@@ -117,7 +146,7 @@ def buscar_canchas_libres(
     start_iso, end_iso, id_deporte=None, techada=None, limit=10, offset=0
 ):
   sql = """
-    SELECT c.id_cancha, c.nombre, c.id_deporte, c.precio_hora, c.techada, c.activa
+    SELECT c.id_cancha AS id, c.nombre, c.id_deporte, c.precio_hora, c.techada, c.activa
     FROM CANCHAS c
     WHERE c.activa = TRUE
       AND NOT EXISTS (
@@ -154,4 +183,5 @@ def buscar_canchas_libres(
     return canchas, total
   finally:
     conn.close()
+
 
