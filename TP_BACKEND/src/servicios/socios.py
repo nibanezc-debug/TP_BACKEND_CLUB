@@ -2,7 +2,7 @@ from src.repositorios import socios as repo_socios
 
 
 def normalizar_email(email):
-    # El enunciado pide guardarlo en minúsculas y sin espacios en los extremos
+    '''Guarda el email en minusculas y sin espacios en los extremos'''
     return email.strip().lower()
 
 
