@@ -1,139 +1,151 @@
 from flask import Blueprint, jsonify, request
-import mysql.connector
-from mysql.connector import Error as MySQLError
+
 from src.repositorios import canchas as repo_canchas
-from src.validaciones import canchas as valid_canchas
 from src.servicios import canchas as serv_canchas
+from src.servicios.paginacion import construir_links
+from src.validaciones import canchas as valid_canchas
 
-canchas_bp = Blueprint("canchas_bp", __name__)
+canchas_bp = Blueprint('canchas_bp', __name__)
 
-@canchas_bp.route("/canchas", methods=["GET"]) #verificado
+
+def error(code, message, status):
+    return jsonify({
+        'errors': [{'code': code, 'message': message, 'level': 'error'}]
+    }), status
+
+
+def _bool_query(nombre):
+    valor = request.args.get(nombre)
+    return None if valor is None else valor == 'true'
+
+
+def _id_deporte_query():
+    valor = request.args.get('id_deporte')
+    return None if valor is None else int(valor)
+
+
+def _filtros_para_links():
+    return {
+        k: v for k, v in request.args.items()
+        if k not in ('_limit', '_offset')
+    }
+
+
+@canchas_bp.route('/canchas', methods=['GET'])
 def get_canchas():
-    limit = request.args.get("_limit", default=10, type=int)
-    offset = request.args.get("_offset", default=0, type=int)
-    id_deporte_str = request.args.get("id_deporte")
-    nombre = request.args.get("nombre")
-    techada_str = request.args.get("techada")
-    activa_str = request.args.get("activa")
+    es_valido, mensaje = valid_canchas.validar_cancha_GET(request.args)
+    if not es_valido:
+        return error('BAD_REQUEST', mensaje, 400)
+
+    limit = int(request.args.get('_limit', 10))
+    offset = int(request.args.get('_offset', 0))
+
+    canchas, total = repo_canchas.buscar_canchas(
+        _id_deporte_query(),
+        request.args.get('nombre'),
+        _bool_query('techada'),
+        _bool_query('activa'),
+        limit,
+        offset,
+    )
+
+    if not canchas:
+        return '', 204
+
+    return jsonify({
+        'canchas': canchas,
+        '_links': construir_links(
+            request.base_url, _filtros_para_links(), total, limit, offset
+        ),
+    }), 200
 
 
-
-    if not valid_canchas.datos_validos_cancha_GET(nombre, id_deporte_str, techada_str, activa_str):
-        return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Datos de entrada inválidos o faltantes"}]}), 400
-
-    techada = True if techada_str and techada_str.lower() == "true" else (False if techada_str and techada_str.lower() == "false" else None)
-    activa = True if activa_str and activa_str.lower() == "true" else (False if activa_str and activa_str.lower() == "false" else None)
-    id_deporte = int(id_deporte_str) if id_deporte_str is not None else None
-
-    lista, _ = repo_canchas.buscar_canchas(id_deporte, nombre, techada, activa, limit, offset)
-
-    if not lista:
-        return "", 204
-
-    return jsonify({"canchas": lista}), 200
-
-
-@canchas_bp.route("/canchas", methods=["POST"]) #verificado
+@canchas_bp.route('/canchas', methods=['POST'])
 def post_cancha():
-    datos = request.get_json(silent=True) or {}
-    nombre = datos.get("nombre")
-    id_deporte = datos.get("id_deporte")
-    precio_hora = datos.get("precio_hora")
-    techada = datos.get("techada", False)
-    activa = datos.get("activa", True)
-    
-    if not valid_canchas.datos_validos_cancha_POST_PATCH(nombre, id_deporte, precio_hora, techada, activa):
-        return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Datos de entrada inválidos o faltantes"}]}), 400
+    datos = request.get_json(silent=True)
 
-    try:
-        cancha_id = repo_canchas.guardar_cancha(nombre, id_deporte, precio_hora, techada, activa)
-        return jsonify({"id": cancha_id}), 201
-    except MySQLError:
-        return jsonify({"errors": [{"code": "NOT_FOUND", "message": "Deporte no encontrado"}]}), 404
+    es_valido, mensaje = valid_canchas.validar_cancha_POST(datos)
+    if not es_valido:
+        return error('BAD_REQUEST', mensaje, 400)
+
+    id_cancha, problema = serv_canchas.crear_cancha(datos)
+    if problema == 'DEPORTE_NO_ENCONTRADO':
+        return error('NOT_FOUND', 'Deporte no encontrado', 404)
+
+    return jsonify({'id': id_cancha}), 201
 
 
-@canchas_bp.route("/canchas/<int:id>", methods=["GET"])
-def obtener_cancha_por_id(id):
+@canchas_bp.route('/canchas/<int:id>', methods=['GET'])
+def get_cancha(id):
     cancha = repo_canchas.obtener_cancha_por_id(id)
     if not cancha:
-        return jsonify({"errors": [{"code": "NOT_FOUND", "message": "Cancha no encontrada"}]}), 404
+        return error('NOT_FOUND', 'Cancha no encontrada', 404)
     return jsonify(cancha), 200
 
 
-@canchas_bp.route("/canchas/<int:id>", methods=["PATCH"]) #verificado
+@canchas_bp.route('/canchas/<int:id>', methods=['PATCH'])
 def patch_cancha(id):
-    cancha = repo_canchas.obtener_cancha_por_id(id)
-    
-    if not cancha:
-        return jsonify({"errors": [{"code": "NOT_FOUND", "message": "Cancha no encontrada"}]}), 404
-    
-    datos = request.get_json(silent=True) or {}
-    
-    if not datos:
-        return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Cuerpo de la petición vacío"}]}), 400
-    
-    nombre = datos.get("nombre", cancha["nombre"])
-    precio_hora = datos.get("precio_hora", cancha["precio_hora"])
-    techada = datos.get("techada", cancha["techada"])
-    activa = datos.get("activa", cancha["activa"])
+    if repo_canchas.obtener_cancha_por_id(id) is None:
+        return error('NOT_FOUND', 'Cancha no encontrada', 404)
 
-    if "nombre" in datos and isinstance(nombre, str):
-        nombre = nombre.strip()
+    datos = request.get_json(silent=True)
 
-    if not valid_canchas.datos_validos_cancha_POST_PATCH(nombre ,None , precio_hora, techada, activa):
-        return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Datos de entrada inválidos"}]}), 400
-
-    repo_canchas.actualizar_cancha_db(id, datos)
-    return "", 204
-
-
-@canchas_bp.route("/canchas/<int:id>", methods=["DELETE"]) #verificado
-def delete_cancha(id):
-    cancha = repo_canchas.obtener_cancha_por_id(id)
-    if not cancha:
-        return jsonify({"errors": [{"code": "NOT_FOUND", "message": "Cancha no encontrada"}]}), 404
-
-    try:
-        repo_canchas.eliminar_cancha_db(id)
-        return "", 204
-    except MySQLError:
-        return jsonify({"errors": [{"code": "CONFLICT", "message": "La cancha posee reservas asociadas"}]}), 409
-
-
-@canchas_bp.route("/canchas/disponibles", methods=["GET"]) #verificada
-def get_canchas_disponibles():
-    fecha = request.args.get("fecha")
-    hora_inicio = request.args.get("hora_inicio")
-    hora_fin = request.args.get("hora_fin")
-    id_deporte_str = request.args.get("id_deporte")
-    techada_str = request.args.get("techada")
-    limit = request.args.get("_limit", default=10, type=int)
-    offset = request.args.get("_offset", default=0, type=int)
-
-    
-    if not fecha or not hora_inicio or not hora_fin:
-        return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Faltan parámetros requeridos: fecha, hora_inicio, hora_fin"}]}), 400
-
-    if not valid_canchas.datos_validos_cancha_GET(None, id_deporte_str, techada_str, None):
-        return jsonify({"errors": [{"code": "BAD_REQUEST", "message": "Datos de entrada inválidos o faltantes"}]}), 400    
-
-    es_valido, mensaje_error = serv_canchas.validar_horario_disponibilidad(fecha, hora_inicio, hora_fin)
-    
+    es_valido, mensaje = valid_canchas.validar_cancha_PATCH(datos)
     if not es_valido:
-        return (jsonify({"errors": [{"code": "BAD_REQUEST", "message": mensaje_error}]}),400,)
+        return error('BAD_REQUEST', mensaje, 400)
 
-    techada = True if techada_str and techada_str.lower() == "true" else (False if techada_str and techada_str.lower() == "false" else None)
-    id_deporte = int(id_deporte_str) if id_deporte_str is not None else None
+    cancha, problema = serv_canchas.actualizar_cancha(id, datos)
+    if problema == 'CANCHA_NO_ENCONTRADA':
+        return error('NOT_FOUND', 'Cancha no encontrada', 404)
 
-    hora_ini_limpio = hora_inicio if len(hora_inicio) == 8 else f"{hora_inicio}:00"
-    hora_fin_limpio = hora_fin if len(hora_fin) == 8 else f"{hora_fin}:00"
+    return jsonify(cancha), 200
 
-    start_iso = f"{fecha}T{hora_ini_limpio}.000000-03:00"
-    end_iso = f"{fecha}T{hora_fin_limpio}.000000-03:00"
 
-    lista, _ = repo_canchas.buscar_canchas_libres(start_iso, end_iso, id_deporte, techada, limit, offset)
+@canchas_bp.route('/canchas/<int:id>', methods=['DELETE'])
+def delete_cancha(id):
+    problema = serv_canchas.eliminar_cancha(id)
 
-    if not lista:
-        return "", 200
+    if problema == 'CANCHA_NO_ENCONTRADA':
+        return error('NOT_FOUND', 'Cancha no encontrada', 404)
 
-    return jsonify({"canchas": lista}), 200
+    if problema == 'CANCHA_CON_RESERVAS':
+        return error(
+            'CONFLICT',
+            'La cancha tiene reservas asociadas; puede desactivarse con PATCH',
+            409,
+        )
+
+    return '', 204
+
+
+@canchas_bp.route('/canchas/disponibles', methods=['GET'])
+def get_canchas_disponibles():
+    es_valido, mensaje = valid_canchas.validar_disponibles_GET(request.args)
+    if not es_valido:
+        return error('BAD_REQUEST', mensaje, 400)
+
+    limit = int(request.args.get('_limit', 10))
+    offset = int(request.args.get('_offset', 0))
+
+    inicio_iso, fin_iso = valid_canchas.armar_intervalo_iso(
+        request.args['fecha'],
+        request.args['hora_inicio'],
+        request.args['hora_fin'],
+    )
+
+    canchas, total = repo_canchas.buscar_canchas_libres(
+        inicio_iso,
+        fin_iso,
+        _id_deporte_query(),
+        _bool_query('techada'),
+        limit,
+        offset,
+    )
+
+    
+    return jsonify({
+        'canchas': canchas,
+        '_links': construir_links(
+            request.base_url, _filtros_para_links(), total, limit, offset
+        ),
+    }), 200
