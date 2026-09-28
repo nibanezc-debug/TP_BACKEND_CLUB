@@ -26,14 +26,12 @@ tags:
 paths:
   /deportes:
     get:
-      summary: Listar deportes precargados
+      summary: Consultar los deportes precargados
       tags:
         - Deportes
       responses:
         '200':
           $ref: '#/components/responses/GetDeportesList200'
-        '204':
-          $ref: '#/components/responses/NoContent'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
