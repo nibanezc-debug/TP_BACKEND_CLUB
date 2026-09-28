@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request 
 from src.repositorios import socios as repo_socios
 from src.validaciones import socios as valid_socios
 from src.servicios import socios as serv_socios
@@ -8,15 +8,20 @@ socios_bp = Blueprint("socios_bp", __name__)
 
 
 def error(code, message, status):
+    '''Devuelve los errores en su formato, con su numero de respuesta'''
     return jsonify({"errors": [{"code": code, "message": message, "level": "error"}]}), status
 
 
 @socios_bp.route("/socios", methods=["GET"])
 def get_socios():
+    '''Muestra los socios del club'''
+    
+    #Validacion y filtro de errores
     es_valido, mensaje = valid_socios.validar_socio_GET(request.args)
     if not es_valido:
         return error("BAD_REQUEST", mensaje, 400)
 
+    #Paginado de socios
     limit = int(request.args.get("_limit", 10))
     offset = int(request.args.get("_offset", 0))
     nombre = request.args.get("nombre")
