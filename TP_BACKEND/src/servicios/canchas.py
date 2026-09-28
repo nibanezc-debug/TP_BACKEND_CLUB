@@ -1,6 +1,7 @@
 from datetime import datetime, time
 from src import constantes
-
+from src.repositorios import canchas as repo_canchas
+from src.repositorios import deportes as repo_deportes
 
 def validar_horario_disponibilidad(fecha_str, hora_inicio_str, hora_fin_str):
 
@@ -54,3 +55,32 @@ def validar_horario_disponibilidad(fecha_str, hora_inicio_str, hora_fin_str):
     )
 
   return True, None
+
+def crear_cancha(datos):
+    if not repo_deportes.obtener_deporte_por_id(datos.get('id_deporte')):
+        return None, 'DEPORTE_NO_ENCONTRADO'
+
+    id_cancha = repo_canchas.crear_cancha(datos)
+    return id_cancha, None
+
+
+def actualizar_cancha(id_cancha, datos):
+    if repo_canchas.obtener_cancha_por_id(id_cancha) is None:
+        return None, 'CANCHA_NO_ENCONTRADA'
+
+    if 'id_deporte' in datos and not repo_deportes.obtener_deporte_por_id(datos['id_deporte']):
+        return None, 'DEPORTE_NO_ENCONTRADO'
+
+    cancha_actualizada = repo_canchas.actualizar_cancha_db(id_cancha, datos)
+    return cancha_actualizada, None
+
+
+def eliminar_cancha(id_cancha):
+    if repo_canchas.obtener_cancha_por_id(id_cancha) is None:
+        return 'CANCHA_NO_ENCONTRADA'
+
+    if repo_canchas.cancha_tiene_reservas(id_cancha):
+        return 'CANCHA_CON_RESERVAS'
+
+    repo_canchas.eliminar_cancha_db(id_cancha)
+    return None

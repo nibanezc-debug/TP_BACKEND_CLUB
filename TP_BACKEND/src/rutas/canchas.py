@@ -1,5 +1,4 @@
 from flask import Blueprint, jsonify, request
-
 from src.repositorios import canchas as repo_canchas
 from src.servicios import canchas as serv_canchas
 from src.servicios.paginacion import construir_links
