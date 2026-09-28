@@ -60,7 +60,7 @@ def crear_cancha(datos):
     if not repo_deportes.obtener_deporte_por_id(datos.get('id_deporte')):
         return None, 'DEPORTE_NO_ENCONTRADO'
 
-    id_cancha = repo_canchas.crear_cancha(datos)
+    id_cancha = repo_canchas.guardar_cancha(datos)
     return id_cancha, None
 
 

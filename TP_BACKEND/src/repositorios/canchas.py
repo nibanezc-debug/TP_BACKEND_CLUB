@@ -56,21 +56,27 @@ def buscar_canchas(
     conn.close()
 
 
-def guardar_cancha(nombre, id_deporte, precio_hora, techada, activa):
-  conn = conexion_db()
-  try:
-    cursor = conn.cursor()
-    cursor.execute(
-        'INSERT INTO CANCHAS (nombre, id_deporte, precio_hora, techada,'
-        ' activa) VALUES (%s, %s, %s, %s, %s)',
-        [nombre, id_deporte, precio_hora, techada, activa],
-    )
-    conn.commit()
-    cancha_id = cursor.lastrowid
-    cursor.close()
-    return cancha_id
-  finally:
-    conn.close()
+def guardar_cancha(datos):
+    conn = conexion_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            'INSERT INTO CANCHAS (nombre, id_deporte, precio_hora, techada, activa) '
+            'VALUES (%s, %s, %s, %s, %s)',
+            [
+                datos.get('nombre'),
+                datos.get('id_deporte'),
+                datos.get('precio_hora'),
+                datos.get('techada', False),
+                datos.get('activa', True)
+            ]
+        )
+        conn.commit()
+        cancha_id = cursor.lastrowid
+        cursor.close()
+        return cancha_id
+    finally:
+        conn.close()
 
 
 def obtener_cancha_por_id(cancha_id):
