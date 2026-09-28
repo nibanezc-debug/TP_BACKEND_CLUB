@@ -1,0 +1,2 @@
+HORA_INICIO = 8
+HORA_FIN = 23
