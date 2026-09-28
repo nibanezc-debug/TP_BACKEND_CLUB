@@ -2,7 +2,7 @@ from urllib.parse import urlencode
 
 
 def construir_links(base_url, filtros, total, limit, offset):
-    """Arma el objeto _links (HATEOAS) que pide el enunciado.
+    """Arma el objeto _links (HATEOAS).
 
     Sirve para cualquier listado: socios, canchas o reservas.
     'filtros' son los parámetros de búsqueda, para que se mantengan al navegar.
